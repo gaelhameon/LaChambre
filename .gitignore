@@ -6,6 +6,8 @@ npm-debug.log
 *.env
 *.dev
 
+# Data Folder
+Data
 
 # Docker
 Dockerfile
