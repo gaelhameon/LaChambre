@@ -6,7 +6,7 @@ var _ = require('lodash');
 
 app.set('port', (process.env.PORT || 5000));
 app.get('/', function(request, response) {
-  response.send('Work in progress');
+  response.send('This is work in progress');
 });
 
 app.listen(app.get('port'), function() {
