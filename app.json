@@ -1,0 +1,8 @@
+{
+  "name": "La Chambre",
+  "description": "Un outil pour estimer le temps d'attente avant que quelqu'un vienne prendre un Vélib à une station.",
+  "repository": "https://github.com/gaelhameon/LaChambre",
+  "logo": "",
+  "keywords": [],
+  "image": ""
+}

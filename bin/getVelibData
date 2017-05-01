@@ -1,0 +1,31 @@
+#!/usr/bin/env node
+
+var _ = require('lodash');
+var pg = require('pg');
+var request = require('request');
+var Dropbox = require('dropbox');
+
+
+request({
+  method: 'GET',
+  url: 'https://api.jcdecaux.com/vls/v1/stations?contract=paris&apiKey=' + process.env.JCDECAUX_APIKEY,
+  json: true
+}, function(error, res, content) {
+  if (error) {
+    console.log(error);
+  }
+  else {
+    var dbx = new Dropbox({ accessToken: process.env.DROPBOX_TOKEN });
+    dbx.filesUpload({
+        contents: JSON.stringify(content, null, 2),
+        path: '/Velib/' + Date.now() + '.json',
+        mute: true
+      })
+      .then(function(response) {
+        console.log(response);
+      })
+      .catch(function(error) {
+        console.log(error);
+      });
+  }
+});

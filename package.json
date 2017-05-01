@@ -1,0 +1,25 @@
+{
+  "name": "LaChambre",
+  "version": "0.0.0",
+  "description": "Un outil pour estimer le temps d'attente avant que quelqu'un vienne prendre un Vélib à une station.",
+  "engines": {
+    "node": "6.10.2"
+  },
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "dropbox": "^2.5.2",
+    "express": "4.15.2",
+    "lodash": "^4.17.4",
+    "pg": "6.x",
+    "request": "^2.81.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gaelhameon/LaChambre"
+  },
+  "keywords": [],
+  "license": "MIT"
+}
