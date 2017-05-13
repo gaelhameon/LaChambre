@@ -10,8 +10,11 @@
     "start": "node index.js"
   },
   "dependencies": {
+    "async": "^2.4.0",
+    "bookshelf": "^0.10.3",
     "dropbox": "^2.5.2",
     "express": "4.15.2",
+    "knex": "^0.12.9",
     "lodash": "^4.17.4",
     "pg": "6.x",
     "request": "^2.81.0"

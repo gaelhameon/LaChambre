@@ -1,0 +1,20 @@
+#!/usr/bin/env node
+'use strict';
+
+const _ = require('lodash');
+
+const modelByModelName = require('../models/modelByModelName');
+const Feed = modelByModelName.Feed;
+const Feeds = modelByModelName.Feeds;
+const Station = modelByModelName.Station;
+
+const feeds = Feeds.forge([
+  { shortName: 'Bixi', url: 'https://secure.bixi.com/data/stations.json' },
+  { shortName: 'Velib', url: 'api...' }
+]);
+
+feeds.invokeThen('save').then((result)=> {
+  console.log('feeds have been saved');
+});
+
+process.exit();
