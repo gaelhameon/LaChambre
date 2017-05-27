@@ -5,6 +5,9 @@ var pg = require('pg');
 var request = require('request');
 var Dropbox = require('dropbox');
 
+var Station = require('../models/station');
+
+
 
 request({
   method: 'GET',
@@ -15,6 +18,9 @@ request({
     console.log(error);
   }
   else {
+
+
+
     var dbx = new Dropbox({ accessToken: process.env.DROPBOX_TOKEN });
     dbx.filesUpload({
         contents: JSON.stringify(content, null, 2),

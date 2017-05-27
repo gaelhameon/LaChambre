@@ -15,6 +15,5 @@ const feeds = Feeds.forge([
 
 feeds.invokeThen('save').then((result)=> {
   console.log('feeds have been saved');
+  process.exit();
 });
-
-process.exit();

@@ -3,99 +3,34 @@
 
 const _ = require('lodash');
 const async = require('async');
-const request = require('request');
 const Dropbox = require('dropbox');
+const request = require('request');
+const moment = require('moment');
 
 const modelByModelName = require('../models/modelByModelName');
 const Feed = modelByModelName.Feed;
-const Station = modelByModelName.Station;
+// const data = require('../Data/Bixi/1493565786326');
+// const data = require('../Data/Bixi/1493566440084');
+// const data = require('../Data/Bixi/1493979137299');
+// const data = require('../Data/Bixi/1495210972884');
 const data = require('../Data/Bixi/test');
 
 
-const destStringByJsonKey = {
-  'id': 'station.localId',
-  's': 'station.longName',
-  'n': 'station.shortName',
-  'st': 'station.other',
-  'b': 'station.other',
-  'su': 'station.other',
-  'm': 'station.other',
-  'lu': 'temp.lastUpdated',
-  'lc': 'temp.lastCommunication',
-  'bk': 'station.other',
-  'bl': 'station.other',
-  'la': 'station.lat',
-  'lo': 'station.lon',
-  'da': 'stationStatus.availableSpots',
-  'dx': 'stationStatus.disabledSpots',
-  'ba': 'stationStatus.availableVehicles',
-  'bx': 'stationStatus.disabledVehicles'
-}
-
-function getModelDestinationByJsonKey(destStringByJsonKey) {
-  const modelDestinationByJsonKey = {};
-  _.each(destStringByJsonKey, (destString, jsonKey) => {
-    modelDestinationByJsonKey[jsonKey] = {
-      table: destString.replace(/(.*)\.(.*)/, '$1'),
-      column: destString.replace(/(.*)\.(.*)/, '$2'),
-    }
-  });
-  return modelDestinationByJsonKey;
-}
-
-const modelDestinationByJsonKey = getModelDestinationByJsonKey(destStringByJsonKey);
-
-
-async.each(data.stations, (stationValueByStationKey, done) => {
-  const valueByColumnNameByTableName = {
-    station: {
-      feedId: 1
-    },
-    stationStatus: {},
-    temp: {}
-  };
-
-  _.each(stationValueByStationKey, (stationValue, stationKey) => {
-    const modelDestination = modelDestinationByJsonKey[stationKey];
-    if (!modelDestination) {
-      console.log('!!! Unknown station key: ' + stationKey);
-    }
-    else if (modelDestination.column === 'other') {
-      valueByColumnNameByTableName[modelDestination.table][modelDestination.column] = valueByColumnNameByTableName[modelDestination.table][modelDestination.column] || {};
-      valueByColumnNameByTableName[modelDestination.table][modelDestination.column][stationKey] = stationValue;
-    }
-    else {
-      valueByColumnNameByTableName[modelDestination.table][modelDestination.column] = stationValue;
-    }
-  });
-  _.each(valueByColumnNameByTableName, (valueByColumnName, tableName) => {
-    if (valueByColumnName.other) {
-      valueByColumnName.other = JSON.stringify(valueByColumnName.other);
-    }
-  });
-  valueByColumnNameByTableName.station.totalSpots =
-    valueByColumnNameByTableName.stationStatus.availableSpots +
-    valueByColumnNameByTableName.stationStatus.disabledSpots +
-    valueByColumnNameByTableName.stationStatus.availableVehicles +
-    valueByColumnNameByTableName.stationStatus.disabledVehicles;
-
-  new Station(valueByColumnNameByTableName.station)
-      .save()
-      .then(function(saved) {
-        console.log(saved);
-        done();
+Feed
+  .where({ feedId: 1 })
+  .fetch()
+  .then((feed) => {
+    feed.update(data)
+      .then((feed) => {
+        process.exit();
+      })
+      .catch((error) => {
+        console.log('Reached inner error handling');
+        console.log(error);
+        process.exit();
       });
-}, (err) => {
-  process.exit();
-});
-
-
-// Feed
-//   .fetchAll()
-//   .then((feeds) => {
-//     feeds.forEach((feed) => {
-//       console.log(feed.attributes);
-//     });
-//     console.log(feeds.toJSON()[0]);
-//     console.log(JSON.stringify(feeds, null, 2));
-//   });
+  }, (error) => {
+    console.log('Reached global error handling');
+    console.log(error);
+    process.exit();
+  });
