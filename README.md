@@ -3,7 +3,7 @@ Devrais-je partir ou bien rester, devrais-je enfin tout laisser tomber?
 
 
 ## Pourquoi La chambre?
-https://www.youtube.com/watch?v=Pj7_KL8xZhc
+https://youtu.be/Pj7_KL8xZhc?t=1m7s
 
 Pour répondre à cette fameuse question que s'est posé Jean Leloup tant de fois, et que nous nous posons tous lorsqu'à la fin d'un trajet en Vélo Libre Service, nous arrivons à notre station de destination pour constater qu'elle est pleine : devrais-je partir ou bien rester ?
 
