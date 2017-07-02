@@ -14,12 +14,15 @@ exports.updateStations = function(feedUpdate, rawStationUpdates) {
         return handleOneStation(feedUpdate, rawStationUpdate, dbStationByLocalId);
       }));
     }).then((results) => {
+      console.log('Will handle unmatched stations');
       const unmatchedDbStations = _.pickBy(dbStationByLocalId, (dbStation) => {
         return !dbStation.matched;
       });
       // todo: review the way we handle active/inactive stations...
       return Promise.all(_.values(unmatchedDbStations).map((unmatchedDbStation) => {
-        return feedUpdate.updateMissingStation(unmatchedDbStation);
+        console.log('Will update missing station');
+        console.log(unmatchedDbStation.toJSON());
+        return unmatchedDbStation.updateMissing(feedUpdate);
       }));
     }).then((results) => {
       resolve(feedUpdate);
@@ -30,66 +33,98 @@ exports.updateStations = function(feedUpdate, rawStationUpdates) {
   return promise;
 }
 
-function handleOneStation(feedUpdate, rawStationUpdate, dbStationByLocalId) {
+exports.updateStationProperties = function(station, feedUpdate, newStationProperties) {
   const promise = new Promise((resolve, reject) => {
-    const parsedStationData = parseRawStation(rawStationUpdate, parsingInstructions);
-    const newStation = parsedStationData.station;
-    let dbStation = dbStationByLocalId[newStation.localId];
-
-    if (!dbStation) {
-      // This is a new station
-      console.log('This is a brand new station:\n', newStation);
-      feedUpdate.createNewStation(newStation)
-        .then((savedStation) => {
-          resolve(savedStation.toJSON());
-        });
+    if (stationsAreTheSame(station.attributes, newStationProperties)) {
+      console.log('Station has nothing new.');
+      resolve(station);
     }
     else {
-      dbStation.matched = true;
-      if (stationsAreTheSame(dbStation, newStation)) {
-        // No need to update the station, probably no need for anything here
-        // console.log('Nothing new on this station');
-        resolve(rawStationUpdate.n);
-      }
-      else {
-        console.log('Station has something new !');
-        console.log('dbStation:\n', dbStation);
-        console.log('newStation:\n', newStation);
-        feedUpdate.updateOneStation(newStation)
-          .then((updatedStation) => {
-            resolve(updatedStation.toJSON());
-          });
-      }
+      console.log('Station has something new !');
+      // console.log('dbStation:\n', dbStation);
+      // console.log('newStation:\n', newStation);
+      return station.save(newStationProperties, { patch: true })
+        .then((savedStation) => {
+          return station.updateLatestStationHistory(feedUpdate);
+        }).then((updatedLatestStationHistory) => {
+          return station.createStationHistory(feedUpdate);
+        }).then((newStationHistory) => {
+          resolve(station);
+        });
     }
   });
   return promise;
 }
 
+exports.updateStationStatus = function(station, feedUpdate, newStationStatus) {
+  return station.getLatestStationStatus()
+    .then((latestStationStatus) => {
+      if (statusesAreTheSame(latestStationStatus.attributes, newStationStatus)) {
+        console.log('Station status did not change.');
+        return station;
+      }
+      else {
+        console.log('Station status changed!');
+        console.log('oldStatus:\n', latestStationStatus.attributes);
+        console.log('newStatus:\n', newStationStatus);
+        return latestStationStatus.set({ to: feedUpdate.get('sourceTimestamp') }).save()
+          .then((updatedLatestStationStatus) => {
+            return station.createStationStatus(feedUpdate, newStationStatus);
+          }).then((newStationStatus) => {
+            return station;
+          });
+      }
+    });
+}
+
+function handleOneStation(feedUpdate, rawStationUpdate, dbStationByLocalId) {
+  const parsedStation = parseRawStation(rawStationUpdate, parsingInstructions);
+
+  let dbStation = dbStationByLocalId[parsedStation.properties.localId];
+
+  if (!dbStation) {
+    console.log('This is a brand new station:\n', parsedStation);
+    return feedUpdate.createNewStation(parsedStation); // change to handle status too
+  }
+  else {
+    dbStation.matched = true;
+    return dbStation.update(feedUpdate, parsedStation);
+  }
+}
+
 function stationsAreTheSame(station1, station2) {
+  console.log(simplifyStation(station1));
+  console.log(simplifyStation(station2));
   return _.isEqual(simplifyStation(station1), simplifyStation(station2));
+}
+
+function statusesAreTheSame(status1, status2) {
+  console.log(simplifyStatus(status1));
+  console.log(simplifyStatus(status2));
+  return _.isEqual(simplifyStatus(status1), simplifyStatus(status2));
 }
 
 function simplifyStation(station) {
   return _.omit(_.pickBy(station), 'matched', 'feedId', 'globalStationId');
 }
 
+function simplifyStatus(status) {
+  return _.pick(status, 'availableVehicles', 'availableSpots', 'disabledVehicles', 'disabledSpots');
+}
+
 function getDbStationByLocalId(dbStations) {
-  return _.keyBy(dbStations.toJSON(), (dbStation) => {
-    // Delete properties that never exist on raw stations to ease comparison later
-    // Todo: see if this is still needed with new comparison function
-    delete dbStation.globalStationId;
-    delete dbStation.feedId;
+  return _.keyBy(dbStations.models, (dbStation) => {
     // Todo: sort this bad format thing out.
-    dbStation.lat = Number(dbStation.lat);
-    dbStation.lon = Number(dbStation.lon);
-    return dbStation.localId;
+    dbStation.attributes.lat = Number(dbStation.attributes.lat);
+    dbStation.attributes.lon = Number(dbStation.attributes.lon);
+    return dbStation.attributes.localId;
   });
 }
 
 function parseRawStation(rawStation, modelDestinationByRawStationKey) {
-  const valueByColumnNameByTableName = {
-    station: {},
-    stationStatus: {},
+  const parsedStation = {
+    properties: {},
+    status: {},
     temp: {}
   };
 
@@ -99,46 +134,46 @@ function parseRawStation(rawStation, modelDestinationByRawStationKey) {
       console.log('!!! Unknown station key: ' + stationKey);
     }
     else if (modelDestination.column === 'other') {
-      valueByColumnNameByTableName[modelDestination.table][modelDestination.column] = valueByColumnNameByTableName[modelDestination.table][modelDestination.column] || {};
-      valueByColumnNameByTableName[modelDestination.table][modelDestination.column][stationKey] = stationValue;
+      parsedStation[modelDestination.table][modelDestination.column] = parsedStation[modelDestination.table][modelDestination.column] || {};
+      parsedStation[modelDestination.table][modelDestination.column][stationKey] = stationValue;
     }
     else {
-      valueByColumnNameByTableName[modelDestination.table][modelDestination.column] = stationValue;
+      parsedStation[modelDestination.table][modelDestination.column] = stationValue;
     }
   });
-  _.each(valueByColumnNameByTableName, (valueByColumnName, tableName) => {
+  _.each(parsedStation, (valueByColumnName, tableName) => {
     if (valueByColumnName.other) {
       // valueByColumnName.other = JSON.stringify(valueByColumnName.other);
     }
   });
-  valueByColumnNameByTableName.station.totalSpots =
-    valueByColumnNameByTableName.stationStatus.availableSpots +
-    valueByColumnNameByTableName.stationStatus.disabledSpots +
-    valueByColumnNameByTableName.stationStatus.availableVehicles +
-    valueByColumnNameByTableName.stationStatus.disabledVehicles;
+  parsedStation.properties.totalSpots =
+    parsedStation.status.availableSpots +
+    parsedStation.status.disabledSpots +
+    parsedStation.status.availableVehicles +
+    parsedStation.status.disabledVehicles;
 
-  return valueByColumnNameByTableName;
+  return parsedStation;
 }
 
 
 const destStringByRawStationKey = {
-  'id': 'station.localId',
-  's': 'station.longName',
-  'n': 'station.shortName',
-  'st': 'station.other',
-  'b': 'station.other',
-  'su': 'station.other',
-  'm': 'station.other',
+  'id': 'properties.localId',
+  's': 'properties.longName',
+  'n': 'properties.shortName',
+  'st': 'properties.other',
+  'b': 'properties.other',
+  'su': 'properties.other',
+  'm': 'properties.other',
   'lu': 'temp.lastUpdated',
   'lc': 'temp.lastCommunication',
-  'bk': 'station.other',
-  'bl': 'station.other',
-  'la': 'station.lat',
-  'lo': 'station.lon',
-  'da': 'stationStatus.availableSpots',
-  'dx': 'stationStatus.disabledSpots',
-  'ba': 'stationStatus.availableVehicles',
-  'bx': 'stationStatus.disabledVehicles'
+  'bk': 'properties.other',
+  'bl': 'properties.other',
+  'la': 'properties.lat',
+  'lo': 'properties.lon',
+  'da': 'status.availableSpots',
+  'dx': 'status.disabledSpots',
+  'ba': 'status.availableVehicles',
+  'bx': 'status.disabledVehicles'
 }
 const parsingInstructions = getParsingInstructions(destStringByRawStationKey);
 

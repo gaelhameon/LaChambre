@@ -13,14 +13,17 @@ const Feed = bookshelf.Model.extend({
   feedUpdates: function() {return this.hasMany(FeedUpdate, 'feedId');},
 
   update: function(rawFeedUpdate) {
+    console.log('Will create a new feedUpdate');
     return this.feedUpdates().create({
       startedAt: moment().format(),
       sourceTimestamp: moment(rawFeedUpdate.timestamp).format(),
       numberOfStations: rawFeedUpdate.stations.length,
       other: { schemeSuspended: rawFeedUpdate.schemeSuspended }
     }).then((feedUpdate) => {
+      console.log('Will update stations for this feed update.');
       return feedUpdate.updateStations(rawFeedUpdate.stations);
     }).then((stationUpdatedFeedUpdate) => {
+      console.log('Will end the feed update.');
       return stationUpdatedFeedUpdate.endFeedUpdate();
     }).then((endedFeedUpdate) => {
       return this;
@@ -44,61 +47,26 @@ const FeedUpdate = bookshelf.Model.extend({
     return this.set('endedAt', moment().format()).save();
   },
 
-  createNewStation: function(stationAttributes) {
+  createNewStation: function(parsedStation) {
     let newStation;
     return this.feed().fetch()
       .then((feed) => {
-        return feed.stations().create(stationAttributes);
+        return feed.stations().create(parsedStation.properties);
       }).then((station) => {
         newStation = station;
-        return this.createStationHistory(newStation);
+        return newStation.createStationHistory(this);
       }).then((stationHistory) => {
+        return newStation.createStationStatus(this, parsedStation.status);
+      }).then((stationStatus) => {
         return newStation;
       });
   },
 
-  updateOneStation: function (stationAttributes) {
-    let updatedStation;
-    return this.feed().fetch()
-      .then((feed) => {
-        return feed.stations().query({ where: { localId: stationAttributes.localId } }).fetchOne();
-      }).then((station) => {
-        return station.save(stationAttributes, { patch: true });
-      }).then((station) => {
-        updatedStation = station;
-        return station.updateLatestStationHistory(this);
-      }).then((updatedLatestStationHistory) => {
-        return this.createStationHistory(updatedStation);
-      }).then((newStationHistory) => {
-        return updatedStation;
-      });
-  },
-
-  updateMissingStation: function(missingStationAttributes) {
-      let missingStation;
-      return this.feed().fetch()
-      .then((feed) => {
-        return feed.stations().query({ where: { localId: missingStationAttributes.localId } }).fetchOne();
-      }).then((station) => {
-        missingStation = station;
-        return station.getLatestStationHistory();
-      }).then((latestStationHistory) => {
-        if (latestStationHistory.get('to')) {
-          return missingStation;
-        }
-        else {
-          return missingStation.updateLatestStationHistory(this).then(() => {
-            return missingStation;
-          });
-        }
-      });
-  },
-
-  createStationHistory: function(station) {
-    const stationHistory = station.attributes;
-    stationHistory.from = this.get('sourceTimestamp');
-    return this.stationHistories().create(stationHistory);
-  }
+  // createStationHistory: function(station) {
+  //   const stationHistory = station.attributes;
+  //   stationHistory.from = this.get('sourceTimestamp');
+  //   return this.stationHistories().create(stationHistory);
+  // }
 });
 
 const Station = bookshelf.Model.extend({
@@ -118,6 +86,67 @@ const Station = bookshelf.Model.extend({
     return this.getLatestStationHistory()
       .then((latestStationHistory) => {
         return latestStationHistory.set({ to: feedUpdate.get('sourceTimestamp') }).save();
+      });
+  },
+
+  getLatestStationStatus: function () {
+    return this.load({ stationStatuses: (qb) => { qb.orderBy('from', 'DESC').orderBy('stationStatusId', 'DESC'); } })
+      .then((station) => {
+        return station.related('stationStatuses').at(0);
+      });
+  },
+  updateLatestStationStatus: function (feedUpdate) {
+    return this.getLatestStationStatus()
+      .then((latestStationStatus) => {
+        return latestStationStatus.set({ to: feedUpdate.get('sourceTimestamp') }).save();
+      });
+  },
+
+  createStationStatus: function(feedUpdate, stationStatus) {
+    stationStatus.from = feedUpdate.get('sourceTimestamp');
+    stationStatus.feedUpdateId = feedUpdate.get('feedUpdateId');
+    return this.stationStatuses().create(stationStatus);
+  },
+
+  createStationHistory: function(feedUpdate) {
+    const stationHistory = this.attributes;
+    stationHistory.from = feedUpdate.get('sourceTimestamp');
+    stationHistory.feedUpdateId = feedUpdate.get('feedUpdateId');
+    return this.stationHistories().create(stationHistory);
+  },
+
+  update: function (feedUpdate, parsedStation) {
+    return lib.updateStationProperties(this, feedUpdate, parsedStation.properties)
+      .then((updatedStation) => {
+        return lib.updateStationStatus(updatedStation, feedUpdate, parsedStation.status);
+      });
+  },
+
+  updateMissing: function(feedUpdate) {
+    return this.getLatestStationHistory()
+      .then((latestStationHistory) => {
+        if (latestStationHistory.get('to')) {
+          return this;
+        }
+        else {
+          return this.updateLatestStationHistory(feedUpdate)
+          .then(() => {
+            return this;
+          });
+        }
+      }).then((station) =>{
+        return this.getLatestStationStatus()
+          .then((latestStationStatus) => {
+            if (latestStationStatus.get('to')) {
+              return this;
+            }
+            else {
+              return this.updateLatestStationStatus(feedUpdate)
+              .then(() => {
+                return this;
+              });
+            }
+          });
       });
   }
 });
