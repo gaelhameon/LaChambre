@@ -4,6 +4,7 @@
 const _ = require('lodash');
 const async = require('async');
 const Dropbox = require('dropbox');
+const fs = require('fs-extra');
 const request = require('request');
 const moment = require('moment');
 
@@ -16,21 +17,30 @@ const Feed = modelByModelName.Feed;
 // const data = require('../Data/Bixi/1493979137299');
 // const data = require('../Data/Bixi/1495210972884');
 const data = require('../testData/test');
+const root = './testData/';
 
 console.log('Middle');
 Feed
   .where({ feedId: 1 })
   .fetch()
   .then((feed) => {
-    feed.update(data)
-      .then((feed) => {
-        process.exit();
-      })
-      .catch((error) => {
-        console.log('Reached inner error handling');
-        console.log(error);
-        process.exit();
-      });
+    fs.readdir(root, (err, files) => {
+      console.log(files);
+      return Promise.all(files.map((file) => {
+        console.log('Will update using this file:');
+        console.log(file);
+        let jsonData = fs.readJsonSync(root + file);
+        return feed.update(jsonData)
+          .then((feed) => {
+            process.exit();
+          })
+          .catch((error) => {
+            console.log('Reached inner error handling');
+            console.log(error);
+            process.exit();
+          });
+      }));
+    });
   }, (error) => {
     console.log('Reached global error handling');
     console.log(error);
