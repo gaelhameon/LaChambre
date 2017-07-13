@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "description": "Un outil pour estimer le temps d'attente avant que quelqu'un vienne prendre un Vélib à une station.",
   "engines": {
-    "node": "6.10.2"
+    "node": "6.11.1"
   },
   "main": "index.js",
   "scripts": {
