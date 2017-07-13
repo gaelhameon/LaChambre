@@ -1,0 +1,104 @@
+#!/usr/bin/env node
+'use strict';
+
+const _ = require('lodash');
+const async = require('async');
+const Dropbox = require('dropbox');
+const fs = require('fs-extra');
+const request = require('request');
+const moment = require('moment');
+
+const modelByModelName = require('../models/modelByModelName');
+const Feed = modelByModelName.Feed;
+// const data = require('../Data/Bixi/1493565786326');
+// const data = require('../Data/Bixi/1493566440084');
+// const data = require('../Data/Bixi/1493979137299');
+// const data = require('../Data/Bixi/1495210972884');
+const data = require('../testData/test');
+const root = './testData/';
+const root2 = './testData2';
+
+// Feed
+//   .where({ feedId: 1 })
+//   .fetch()
+//   .then((feed) => {
+
+  let test = 
+    fs.readdir(root)
+      .then((files) => {
+        console.log('Root:');
+        console.log(files);
+        return 'it worked!';
+      })
+      .catch((err) => {
+        console.log('Erreur A:');
+        console.log(err);
+        return 'it failed';
+      })
+      .then((files) => {
+        console.log(files);
+        return 'this is my something';
+      })
+      .then((something) => {
+        console.log('Something:');
+        console.log(something);
+        return fs.readdir(root2);
+      })
+      .then((files) => {
+        console.log('Root2:');
+        console.log(files);
+      })
+      .catch((err) => {
+        console.log('Erreur B:');
+        console.log(err);
+      });
+
+  
+  
+  let test2 = new Promise((resolve, reject) => {
+    setTimeout(() => {
+      console.log('test 2 finished');
+      resolve('test 2 finished');
+    }, 1000);
+  });
+  
+  console.log('test2 before');
+  console.log(typeof test2);
+  console.log(test2);
+  
+  setTimeout(() => {
+    console.log('test2 after 500');
+    console.log(typeof test2);
+    console.log(test2);
+  }, 500);
+
+    setTimeout(() => {
+    console.log('test2 after 1500');
+    console.log(typeof test2);
+    console.log(test2);
+  }, 1500);
+
+    
+    
+    // , (err, files) => {
+    //   console.log(files);
+    //   return Promise.all(files.map((file) => {
+    //     console.log('Will update using this file:');
+    //     console.log(file);
+    //     let jsonData = fs.readJsonSync(root + file);
+    //     return feed.update(jsonData)
+    //       .then((feed) => {
+    //         process.exit();
+    //       })
+    //       .catch((error) => {
+    //         console.log('Reached inner error handling');
+    //         console.log(error);
+    //         process.exit();
+    //       });
+    //   }));
+    // });
+  // }, (error) => {
+  //   console.log('Reached global error handling');
+  //   console.log(error);
+  //   process.exit();
+  // });

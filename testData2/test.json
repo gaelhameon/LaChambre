@@ -1,0 +1,63 @@
+{
+  "stations": [
+    {
+      "id": 9,
+      "s": "Hôtel-de-Ville New (du Champs-de-Mars / Gosford)",
+      "n": "6001",
+      "st": 1,
+      "b": false,
+      "su": false,
+      "m": false,
+      "lu": 1493543007185,
+      "lc": 1493565721118,
+      "bk": false,
+      "bl": false,
+      "la": 45.50931028555171,
+      "lo": -73.55443105101585,
+      "da": 22,
+      "dx": 0,
+      "ba": 8,
+      "bx": 0
+    },
+    {
+      "id": 10,
+      "s": "Ste-Catherine / Dézéry 23",
+      "n": "6002",
+      "st": 1,
+      "b": false,
+      "su": false,
+      "m": false,
+      "lu": 1493559709579,
+      "lc": 1493565758928,
+      "bk": false,
+      "bl": false,
+      "la": 45.53923029698213,
+      "lo": -73.54108236730099,
+      "da": 12,
+      "dx": 0,
+      "ba": 11,
+      "bx": 0
+    },
+    {
+      "id": 11,
+      "s": "Evans / Clark New",
+      "n": "6003",
+      "st": 1,
+      "b": false,
+      "su": false,
+      "m": false,
+      "lu": 1493565368061,
+      "lc": 1493565609337,
+      "bk": false,
+      "bl": false,
+      "la": 45.511119,
+      "lo": -73.567974,
+      "da": 2,
+      "dx": 0,
+      "ba": 14,
+      "bx": 3
+    }
+  ],
+  "schemeSuspended": false,
+  "timestamp": 1493998985366
+}
