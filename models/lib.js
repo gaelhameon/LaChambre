@@ -93,14 +93,14 @@ function handleOneStation(feedUpdate, rawStationUpdate, dbStationByLocalId) {
 }
 
 function stationsAreTheSame(station1, station2) {
-  console.log(simplifyStation(station1));
-  console.log(simplifyStation(station2));
+  // console.log(simplifyStation(station1));
+  // console.log(simplifyStation(station2));
   return _.isEqual(simplifyStation(station1), simplifyStation(station2));
 }
 
 function statusesAreTheSame(status1, status2) {
-  console.log(simplifyStatus(status1));
-  console.log(simplifyStatus(status2));
+  // console.log(simplifyStatus(status1));
+  // console.log(simplifyStatus(status2));
   return _.isEqual(simplifyStatus(status1), simplifyStatus(status2));
 }
 
