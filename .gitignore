@@ -8,6 +8,7 @@ npm-debug.log
 
 # Data Folder
 Data
+testData
 
 # Docker
 Dockerfile
