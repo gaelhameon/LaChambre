@@ -16,30 +16,32 @@ const Feed = modelByModelName.Feed;
 // const data = require('../Data/Bixi/1493566440084');
 // const data = require('../Data/Bixi/1493979137299');
 // const data = require('../Data/Bixi/1495210972884');
-const data = require('../testData/test');
+// const data = require('../testData/test');
 const root = './testData/';
 
 console.log('Middle');
 Feed
-  .where({ feedId: 1 })
+  .where({ feedId: 5 })
   .fetch()
   .then((feed) => {
     fs.readdir(root, (err, files) => {
       console.log(files);
-      return Promise.all(files.map((file) => {
-        console.log('Will update using this file:');
-        console.log(file);
-        let jsonData = fs.readJsonSync(root + file);
-        return feed.update(jsonData)
-          .then((feed) => {
-            process.exit();
-          })
-          .catch((error) => {
-            console.log('Reached inner error handling');
-            console.log(error);
-            process.exit();
-          });
-      }));
+      return files.map((file) => {
+        return () => {
+          console.log('Will update using this file:');
+          console.log(file);
+          let jsonData = fs.readJsonSync(root + file);
+          return feed.update(jsonData);
+        };
+      }).reduce((prev, cur) => prev.then(cur), Promise.resolve())
+        .then((feed) => {
+          process.exit();
+        })
+        .catch((error) => {
+          console.log('Reached inner error handling');
+          console.log(error);
+          process.exit();
+        });;
     });
   }, (error) => {
     console.log('Reached global error handling');
